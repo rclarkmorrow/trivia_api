@@ -27,8 +27,17 @@ def get_category_list():
     return({category.id: category.type for category in category_query})
 
 
-def paginate_questions():
-    print('init')
+def paginate_questions(request, question_list):
+    # Handles pagination for questions results.
+    page = request.args.get('page', 1, type=int)
+
+    if page < 1:
+        raise Exception('422')
+
+    start = (page - 1) * QUESTIONS_PER_PAGE
+    stop = start + QUESTIONS_PER_PAGE
+
+    return(([question.format() for question in question_list])[start:stop])
 
 
 """ ---------------------------------------------------------------------------
@@ -59,7 +68,7 @@ def create_app(test_config=None):
             category_list = get_category_list()
 
             if len(category_list) < 1:
-                abort(404)
+                raise Exception('404')
 
             return jsonify({
                 'success': True,
@@ -67,27 +76,38 @@ def create_app(test_config=None):
             }), 200
         except Exception as e:
             print('Exception: ', e)
-            abort(422)
+            if '500' in str(e):
+                abort(500)
+            elif '404' in str(e):
+                abort(404)
+            else:
+                abort(422)
 
     @app.route('/api/questions', methods=['GET'])
     def get_questions():
         try:
             question_query = Question.query.order_by(Question.id).all()
-            question_list = [question.format() for question in question_query]
+            question_list = paginate_questions(request, question_query)
 
             if len(question_list) < 1:
-                abort(404)
+                raise Exception('404')
+
             return jsonify({
                 'success': True,
                 'questions': question_list,
-                'total_questions': len(question_list),
+                'total_questions': len(question_query),
                 'current_category': [],
                 'categories': get_category_list()
 
             }), 200
         except Exception as e:
             print('Exception: ', e)
-            abort(422)
+            if '500' in str(e):
+                abort(500)
+            elif '404' in str(e):
+                abort(404)
+            else:
+                abort(422)
 
     '''
     @TODO:

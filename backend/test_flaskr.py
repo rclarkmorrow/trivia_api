@@ -93,6 +93,9 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], True)
         self.assertEqual(len(data['questions']), QUESTIONS_PER_PAGE)
         self.assertTrue(data['questions'])
+        self.assertTrue(data['total_questions'])
+        self.assertEqual(data['current_category'], [])
+        self.assertTrue(data['categories'])
 
     def test_404_questions_invalid_page_range(self):
         """Tests request for a page out of range."""
