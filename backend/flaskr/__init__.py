@@ -1,4 +1,5 @@
 import os
+import json
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -25,20 +26,23 @@ def create_app(test_config=None):
                              'GET, POST, PATCH, DELETE, OPTIONS')
         return response
 
-    @app.route('/api/test', methods=['GET'])
-    def test_app():
-        # Initial response test
-        result = ({
-            'success': 'success',
-            'message': 'jamboree'
-         })
-        return jsonify(result)
+    @app.route('/api/categories', methods=['GET'])
+    # Returns a list of trivia question categories.
+    def get_categories():
+        try:
+            category_query = Category.query.order_by(Category.type).all()
 
-    '''
-    @TODO:
-    Create an endpoint to handle GET requests
-    for all available categories.
-    '''
+            if len(category_query) < 1:
+                abort(404)
+
+            return jsonify({
+                'success': True,
+                'categories': {category.id: category.type
+                               for category in category_query}
+            }), 200
+        except Exception as e:
+            print('Exception: ', e)
+            abort(422)
 
     '''
     @TODO:
