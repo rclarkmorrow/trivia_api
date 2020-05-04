@@ -9,6 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 from flaskr import create_app
 from models import setup_db, Question, Category
+from config import QUESTIONS_PER_PAGE
 
 
 """ ---------------------------------------------------------------------------
@@ -38,9 +39,6 @@ class TriviaTestCase(unittest.TestCase):
             # create all tables
             self.db.create_all()
 
-    def getTest():
-        print(test)
-
     def tearDown(self):
         """Executed after reach test."""
         pass
@@ -61,9 +59,18 @@ class TriviaTestCase(unittest.TestCase):
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(data['sucess'], True)
-        self.assertTrue(len(data['questions']))
+        self.assertEqual(data['success'], True)
+        self.assertEqual(len(data['questions']), QUESTIONS_PER_PAGE)
         self.assertTrue(data['questions'])
+
+    def test_404_questions_invalid_page_range(self):
+        """Tests request for a page out of range."""
+        response = self.client().get('/api/questions?page=10000000000')
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_coode, 404)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'resource not found')
 
     """
     TODO

@@ -10,14 +10,7 @@ from flask_cors import CORS
 import random
 
 from models import setup_db, Question, Category
-
-
-""" ---------------------------------------------------------------------------
-# Config
-# --------------------------------------------------------------------------"""
-
-
-QUESTIONS_PER_PAGE = 10
+from config import QUESTIONS_PER_PAGE
 
 
 """ ---------------------------------------------------------------------------
@@ -59,8 +52,6 @@ def create_app(test_config=None):
     def get_categories():
         try:
             category_list = get_category_list()
-            print(len(category_list))
-            print(category_list)
 
             if len(category_list) < 1:
                 abort(404)
@@ -76,7 +67,7 @@ def create_app(test_config=None):
     @app.route('/api/questions', methods=['GET'])
     def get_questions():
         try:
-            question_query = Question.query.order_by(Question.id).limit(10).all()
+            question_query = Question.query.order_by(Question.id).all()
             question_list = [question.format() for question in question_query]
 
             if len(question_list) < 1:
