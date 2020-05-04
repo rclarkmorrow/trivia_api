@@ -17,7 +17,7 @@ from models import setup_db, Question, Category
 
 
 class TriviaTestCase(unittest.TestCase):
-    """This class represents the trivia test case"""
+    """This class represents the trivia test case."""
 
     def setUp(self):
         """Define test variables and initialize app."""
@@ -42,11 +42,11 @@ class TriviaTestCase(unittest.TestCase):
         print(test)
 
     def tearDown(self):
-        """Executed after reach test"""
+        """Executed after reach test."""
         pass
 
     def test_get_categories(self):
-        """ Tests category list response"""
+        """Tests category list response"""
         response = self.client().get('/api/categories')
         data = json.loads(response.data)
 
@@ -54,6 +54,16 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data["success"], True)
         self.assertTrue(len(data['categories']))
         self.assertTrue(data['categories'])
+
+    def test_get_questions(self):
+        """Test questions list response"""
+        response = self.client().get('/api/questions')
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['sucess'], True)
+        self.assertTrue(len(data['questions']))
+        self.assertTrue(data['questions'])
 
     """
     TODO
