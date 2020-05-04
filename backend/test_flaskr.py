@@ -44,6 +44,7 @@ class TriviaTestCase(unittest.TestCase):
         """Executed after reach test."""
         pass
 
+    # Tests for get_categories
     def test_get_categories(self):
         """Tests category list response"""
         response = self.client().get('/api/categories')
@@ -84,6 +85,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_405)
 
+    # Tests for get_questions
     def test_get_questions(self):
         """Test questions list response"""
         response = self.client().get('/api/questions')
@@ -137,12 +139,49 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['message'], ERROR_405)
 
     def test_422_questions(self):
+        """Test 422 error on requesting page < 1."""
         response = self.client().get('/api/questions?page=0')
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 422)
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_422)
+
+    # Tests for delete_questions
+    def test_delete_question(self):
+        """Create test question and add to database."""
+        test_question = Question(
+            question='What is the air speed velocity of an unladen swallow?',
+            answer='What do you mean? An African or European swallow?',
+            difficulty=5,
+            category=1
+        )
+        test_question.insert()
+        test_question_id = test_question.id
+
+        """Delete test question from database"""
+        response = self.client().delete(f'/api/questions/{test_question_id}')
+        data = json.loads(response.data)
+
+        question_exists = Question.query.filter(
+            Question.id == test_question_id).one_or_none()
+        print('Test Question Null: ', question_exists, ' ID: ', str(question_exists.id))
+
+        self.assertEqual(question_exists, None)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertEqual(data['deleted'], str(test_question_id))
+        self.assertTrue(data['questions'])
+        self.assertTrue(data['total_questions'])
+
+    def test_404_delete_question(self):
+        """Test delete method for 404 on non-existant question."""
+        response = self.client().delete('/api/questions/junk')
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_404)
 
     """
     TODO
