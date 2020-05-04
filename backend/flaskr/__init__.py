@@ -10,7 +10,8 @@ from flask_cors import CORS
 import random
 
 from models import setup_db, Question, Category
-from config import QUESTIONS_PER_PAGE
+from config import (QUESTIONS_PER_PAGE, ERROR_404, ERROR_405,
+                    ERROR_422, ERROR_500)
 
 
 """ ---------------------------------------------------------------------------
@@ -24,6 +25,10 @@ def get_category_list():
     category_query = Category.query.order_by(Category.type).all()
 
     return({category.id: category.type for category in category_query})
+
+
+def paginate_questions():
+    print('init')
 
 
 """ ---------------------------------------------------------------------------
@@ -159,7 +164,7 @@ def create_app(test_config=None):
         return jsonify({
             'success': False,
             'error': 404,
-            'message': 'resource not found'
+            'message': ERROR_404
         }), 404
 
     @app.errorhandler(405)
@@ -167,23 +172,23 @@ def create_app(test_config=None):
         return jsonify({
             'success': False,
             'error': 405,
-            'message': 'method not allowed'
-        })
+            'message': ERROR_405
+        }), 405
 
     @app.errorhandler(422)
     def unprocessable(error):
         return jsonify({
             'success': False,
             'error': 422,
-            'message': 'request unprocessable'
-        })
+            'message': ERROR_422
+        }), 422
 
     @app.errorhandler(500)
     def internal_server_error(error):
         return jsonify({
             'success': False,
             'error': 500,
-            'message': 'internal server error'
-        })
+            'message': ERROR_500
+        }), 500
 
     return app
