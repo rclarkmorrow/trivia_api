@@ -12,39 +12,16 @@ import random
 from models import setup_db, Question, Category
 from config import (QUESTIONS_PER_PAGE, ERROR_404, ERROR_405,
                     ERROR_422, ERROR_500)
+from responses import (GetCategoriesReponse, GetQuestionsResponse)
+from helpers import handle_errors
 
 
 """ ---------------------------------------------------------------------------
-# Helpers
+# App config, routes and error handlers
 # --------------------------------------------------------------------------"""
 
 
-def get_category_list():
-    # Queries database for a list of categories and returns with
-    # id and type.
-    category_query = Category.query.order_by(Category.type).all()
-
-    return({category.id: category.type for category in category_query})
-
-
-def paginate_questions(request, question_list):
-    # Handles pagination for questions results.
-    page = request.args.get('page', 1, type=int)
-
-    if page < 1:
-        raise Exception('422')
-
-    start = (page - 1) * QUESTIONS_PER_PAGE
-    stop = start + QUESTIONS_PER_PAGE
-
-    return(([question.format() for question in question_list])[start:stop])
-
-
-""" ---------------------------------------------------------------------------
-# App and routes
-# --------------------------------------------------------------------------"""
-
-
+# App config
 def create_app(test_config=None):
     # Create and configure the app.
     app = Flask(__name__)
@@ -61,66 +38,24 @@ def create_app(test_config=None):
                              'GET, POST, PATCH, DELETE, OPTIONS')
         return response
 
+# App routes
     @app.route('/api/categories', methods=['GET'])
-    # Returns a list of trivia question categories.
+    # Provides a list of categories to the view.
     def get_categories():
         try:
-            category_list = get_category_list()
-
-            if len(category_list) < 1:
-                raise Exception('404')
-
-            return jsonify({
-                'success': True,
-                'categories': category_list
-            }), 200
+            this_response = GetCategoriesReponse()
+            return this_response.response
         except Exception as e:
-            print('Exception: ', e)
-            if '500' in str(e):
-                abort(500)
-            elif '404' in str(e):
-                abort(404)
-            else:
-                abort(422)
+            handle_errors(e)
 
     @app.route('/api/questions', methods=['GET'])
+    # Provides a paginated list of questions to the view.
     def get_questions():
         try:
-            question_query = Question.query.order_by(Question.id).all()
-            question_list = paginate_questions(request, question_query)
-
-            if len(question_list) < 1:
-                raise Exception('404')
-
-            return jsonify({
-                'success': True,
-                'questions': question_list,
-                'total_questions': len(question_query),
-                'current_category': [],
-                'categories': get_category_list()
-
-            }), 200
+            questions_response = GetQuestionsResponse()
+            return questions_response.response
         except Exception as e:
-            print('Exception: ', e)
-            if '500' in str(e):
-                abort(500)
-            elif '404' in str(e):
-                abort(404)
-            else:
-                abort(422)
-
-    '''
-    @TODO:
-    Create an endpoint to handle GET requests for questions,
-    including pagination (every 10 questions).
-    This endpoint should return a list of questions,
-    number of total questions, current category, categories.
-
-    TEST: At this point, when you start the application
-    you should see questions and categories generated,
-    ten questions per page and pagination at the bottom of the screen for
-    three pages. Clicking on the page numbers should update the questions.
-    '''
+            handle_errors(e)
 
     '''
     @TODO:
@@ -174,11 +109,7 @@ def create_app(test_config=None):
     and shown whether they were correct or not.
     '''
 
-    '''
-    @TODO:
-    Create error handlers for all expected errors
-    including 404 and 422.
-    '''
+# Error handlers
     @app.errorhandler(404)
     def not_found(error):
         return jsonify({

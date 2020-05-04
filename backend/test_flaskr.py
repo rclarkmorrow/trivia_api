@@ -165,7 +165,6 @@ class TriviaTestCase(unittest.TestCase):
 
         question_exists = Question.query.filter(
             Question.id == test_question_id).one_or_none()
-        print('Test Question Null: ', question_exists, ' ID: ', str(question_exists.id))
 
         self.assertEqual(question_exists, None)
         self.assertEqual(response.status_code, 200)
