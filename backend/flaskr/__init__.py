@@ -1,5 +1,9 @@
+""" ---------------------------------------------------------------------------
+# Imports
+# --------------------------------------------------------------------------"""
+
+
 import os
-import json
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -7,7 +11,31 @@ import random
 
 from models import setup_db, Question, Category
 
+
+""" ---------------------------------------------------------------------------
+# Config
+# --------------------------------------------------------------------------"""
+
+
 QUESTIONS_PER_PAGE = 10
+
+
+""" ---------------------------------------------------------------------------
+# Helpers
+# --------------------------------------------------------------------------"""
+
+
+def get_category_list():
+    # Queries database for a list of categories and returns with
+    # id and type.
+    category_query = Category.query.order_by(Category.type).all()
+
+    return({category.id: category.type for category in category_query})
+
+
+""" ---------------------------------------------------------------------------
+# App and routes
+# --------------------------------------------------------------------------"""
 
 
 def create_app(test_config=None):
@@ -30,15 +58,36 @@ def create_app(test_config=None):
     # Returns a list of trivia question categories.
     def get_categories():
         try:
-            category_query = Category.query.order_by(Category.type).all()
+            category_list = get_category_list()
+            print(len(category_list))
+            print(category_list)
 
-            if len(category_query) < 1:
+            if len(category_list) < 1:
                 abort(404)
 
             return jsonify({
                 'success': True,
-                'categories': {category.id: category.type
-                               for category in category_query}
+                'categories': category_list
+            }), 200
+        except Exception as e:
+            print('Exception: ', e)
+            abort(422)
+
+    @app.route('/api/questions', methods=['GET'])
+    def get_questions():
+        try:
+            question_query = Question.query.order_by(Question.id).limit(10).all()
+            question_list = [question.format() for question in question_query]
+
+            if len(question_list) < 1:
+                abort(404)
+            return jsonify({
+                'success': True,
+                'questions': question_list,
+                'total_questions': len(question_list),
+                'current_category': [],
+                'categories': get_category_list()
+
             }), 200
         except Exception as e:
             print('Exception: ', e)
