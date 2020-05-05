@@ -4,6 +4,7 @@
 
 
 from flask import request, abort
+from types import SimpleNamespace
 from models import Category, Question
 from config import QUESTIONS_PER_PAGE
 
@@ -59,9 +60,34 @@ class QuestionsPage:
                                 in question_list])[start:stop])
 
 
+# New question object
+class NewQuestion():
+    def __init__(self):
+        this_request = request.get_json()
+        # Converts dict to object with attributes.
+        form_data = SimpleNamespace(**this_request)
+
+        # Checks against empty values.
+        if (form_data.question == '' or form_data.answer == ''
+                or form_data.difficulty == '' or form_data.category == ''):
+            raise Exception('422')
+
+        this_question = Question(
+            question=form_data.question,
+            answer=form_data.answer,
+            difficulty=form_data.difficulty,
+            category=form_data.category
+        )
+        this_question.insert()
+
+        new_question = get_newest_question()
+        self.id = new_question.id
+
+
 # -----------------------------------------------------------------------------
 # Helper Functions
 # -----------------------------------------------------------------------------
+
 
 # Gets all categories.
 def get_all_categories():
@@ -79,7 +105,12 @@ def get_single_question(question_id):
         Question.id == question_id).one_or_none()
     if this_question is None:
         raise Exception('404')
-    return(this_question)
+    return this_question
+
+
+# Gets newest database entry.
+def get_newest_question():
+    return Question.query.order_by(Question.id.desc()).first()
 
 
 # Handles errors.

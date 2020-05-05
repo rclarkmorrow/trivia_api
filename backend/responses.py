@@ -2,11 +2,12 @@
 # Imports
 # --------------------------------------------------------------------------"""
 
-
 import random
 from flask import jsonify
-from helpers import CategoriesData, QuestionsData, QuestionsPage
+from models import Question, db
+from helpers import CategoriesData, QuestionsData, QuestionsPage, NewQuestion
 from helpers import get_single_question
+
 
 """ ---------------------------------------------------------------------------
 # Response Classes
@@ -49,4 +50,15 @@ class DeleteQuestion:
             'deleted': question_id,
             'questions': questions_data.list,
             'total_questions': questions_data.total
-        })
+        }), 200
+
+
+# Gets post question response object.
+class PostQuestion:
+    def __init__(self):
+        new_question = NewQuestion()
+
+        self.response = jsonify({
+            'success': True,
+            'created': new_question.id
+        }), 200

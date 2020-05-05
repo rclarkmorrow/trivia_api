@@ -12,7 +12,7 @@ import random
 from models import setup_db, Question, Category
 from config import (QUESTIONS_PER_PAGE, ERROR_404, ERROR_405,
                     ERROR_422, ERROR_500)
-from responses import Categories, Questions, DeleteQuestion
+from responses import Categories, Questions, DeleteQuestion, PostQuestion
 from helpers import handle_errors
 
 
@@ -35,7 +35,7 @@ def create_app(test_config=None):
         response.headers.add('Access-Control-Allow-Headers',
                              'Content-Type, Authorization')
         response.headers.add('Access-Control-Allow-Methods',
-                             'GET, POST, PATCH, DELETE, OPTIONS')
+                             'GET, POST, DELETE, OPTIONS')
         return response
 
 # App routes
@@ -65,16 +65,13 @@ def create_app(test_config=None):
         except Exception as e:
             handle_errors(e)
 
-    '''
-    @TODO:
-    Create an endpoint to POST a new question,
-    which will require the question and answer text,
-    category, and difficulty score.
-
-    TEST: When you submit a question on the "Add" tab,
-    the form will clear and the question will appear at the end of
-    the last page of the questions list in the "List" tab.
-    '''
+    @app.route('/api/questions', methods=['POST'])
+    def post_question():
+        try:
+            post_question = PostQuestion()
+            return post_question.response
+        except Exception as e:
+            handle_errors(e)
 
     '''
     @TODO:
