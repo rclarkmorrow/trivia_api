@@ -57,8 +57,9 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_405_post_get_categories(self):
         """Tests post method not allowed on get_categories"""
-        response = self.client().post('api/categories',
-                                      data={'junk': 'junk data'})
+        response = self.client().post('api/categories', json={
+            'type': 'Monty Python'
+        })
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 405)
@@ -67,8 +68,22 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_405_patch_get_categories(self):
         """Tests patch method not allowed on get_categories"""
-        response = self.client().patch('api/categories',
-                                       data={'junk': 'junk data'})
+        response = self.client().patch('api/categories', json={
+            'id': 1,
+            'type': 'Monty Python'
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_405)
+
+    def test_405_put_get_categories(self):
+        """Tests put method not allowed on get_categories"""
+        response = self.client().put('api/categories', json={
+            'id': 1,
+            'type': 'Monty Python'
+        })
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 405)
@@ -77,8 +92,7 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_405_delete_get_categories(self):
         """Tests delete method not allowed on get_categories"""
-        response = self.client().delete('api/categories',
-                                        data={'junk': 'junk data'})
+        response = self.client().delete('api/categories')
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 405)
@@ -108,30 +122,30 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_404)
 
-    def test_405_post_get_questions(self):
-        """Tests post method not allowed on get_questions"""
-        response = self.client().post('api/questions',
-                                      data={'junk': 'junk data'})
+    def test_405_patch_questions(self):
+        """Tests patch method not allowed on questions"""
+        response = self.client().patch('api/questions', json={
+            'id': 1,
+            'question': 'What is the airspeed velocity of an unladen swallow?',
+            'answer': 'What do you mean? An African or European swallow?',
+            'difficulty': 5,
+            'category': 1
+        })
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 405)
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_405)
 
-    def test_405_patch_get_questions(self):
-        """Tests patch method not allowed on get_questions"""
-        response = self.client().patch('api/questions',
-                                       data={'junk': 'junk data'})
-        data = json.loads(response.data)
-
-        self.assertEqual(response.status_code, 405)
-        self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], ERROR_405)
-
-    def test_405_delete_get_questions(self):
-        """Tests delete method not allowed on get_questions"""
-        response = self.client().delete('api/questions',
-                                        data={'junk': 'junk data'})
+    def test_405_put_questions(self):
+        """Tests put method not allowed on questions"""
+        response = self.client().put('api/questions', json={
+            'id': 1,
+            'question': 'What is the airspeed velocity of an unladen swallow?',
+            'answer': 'What do you mean? An African or European swallow?',
+            'difficulty': 5,
+            'category': 1
+        })
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 405)
@@ -181,6 +195,34 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_404)
+
+    def test_post_question(self):
+        """Test whether a new question posts"""
+        response = self.client().post('/api/questions', json={
+            'question': 'What is the airspeed velocity of an unladen swallow?',
+            'answer': 'What do you mean? An African or European swallow?',
+            'difficulty': 5,
+            'category': 1
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertTrue(data['created'])
+
+    def test_422_empty_question(self):
+        """Tests post with empty fields returns 422"""
+        response = self.client().post('/api/questions', json={
+            'question': '',
+            'answer': '',
+            'difficulty': '',
+            'category': '',
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
 
     """
     TODO
