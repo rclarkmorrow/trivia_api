@@ -12,7 +12,7 @@ import random
 from models import setup_db, Question, Category
 from config import (QUESTIONS_PER_PAGE, ERROR_404, ERROR_405,
                     ERROR_422, ERROR_500)
-from responses import (GetCategoriesReponse, GetQuestionsResponse)
+from responses import Categories, Questions, DeleteQuestion
 from helpers import handle_errors
 
 
@@ -43,8 +43,8 @@ def create_app(test_config=None):
     # Provides a list of categories to the view.
     def get_categories():
         try:
-            this_response = GetCategoriesReponse()
-            return this_response.response
+            categories = Categories()
+            return categories.response
         except Exception as e:
             handle_errors(e)
 
@@ -52,19 +52,18 @@ def create_app(test_config=None):
     # Provides a paginated list of questions to the view.
     def get_questions():
         try:
-            questions_response = GetQuestionsResponse()
-            return questions_response.response
+            questions = Questions()
+            return questions.response
         except Exception as e:
             handle_errors(e)
 
-    '''
-    @TODO:
-    Create an endpoint to DELETE question using a question ID.
-
-    TEST: When you click the trash icon next to a question, the question will
-    be removed. This removal will persist in the database and when you
-    refresh the page.
-    '''
+    @app.route('/api/questions/<int:question_id>', methods=['DELETE'])
+    def delete_question(question_id):
+        try:
+            delete_question = DeleteQuestion(question_id)
+            return delete_question.response
+        except Exception as e:
+            handle_errors(e)
 
     '''
     @TODO:

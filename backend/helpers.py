@@ -18,31 +18,31 @@ from config import QUESTIONS_PER_PAGE
 # -----------------------------------------------------------------------------
 
 # Categories data object
-class CategoriesData():
+class CategoriesData:
     def __init__(self):
-        category_query = Category.query.order_by(Category.type).all()
-        self.category_list = {category.id: category.type for
-                              category in category_query}
-        if len(self.category_list) < 1:
+        category_query = get_all_categories()
+        self.list = {category.id: category.type for
+                     category in category_query}
+        if len(self.list) < 1:
             raise Exception('404 : Category list not found')
 
 
 # Questions data object
-class QuestionsData():
+class QuestionsData:
     def __init__(self):
-        question_query = Question.query.order_by(Question.id).all()
+        question_query = get_all_questions()
         questions = QuestionsPage(request, question_query)
-        self.question_list = questions.question_list
+        self.list = questions.question_list
         # self.question_list = paginate_questions(request, question_query)
 
-        if len(self.question_list) < 1:
+        if len(self.list) < 1:
             raise Exception('404')
 
-        self.total_questions = len(question_query)
+        self.total = len(question_query)
 
 
 # Page object for pagination
-class QuestionsPage():
+class QuestionsPage:
     def __init__(self, request, question_list):
         if request is None or question_list is None:
             raise Exception('args not provided')
@@ -63,8 +63,26 @@ class QuestionsPage():
 # Helper Functions
 # -----------------------------------------------------------------------------
 
+# Gets all categories.
+def get_all_categories():
+    return Category.query.order_by(Category.type).all()
 
-# Handles errors
+
+# Gets all questions.
+def get_all_questions():
+    return Question.query.order_by(Question.id).all()
+
+
+# Gets a single question by id.
+def get_single_question(question_id):
+    this_question = Question.query.filter(
+        Question.id == question_id).one_or_none()
+    if this_question is None:
+        raise Exception('404')
+    return(this_question)
+
+
+# Handles errors.
 def handle_errors(e):
     if '500' in str(e):
         abort(500)

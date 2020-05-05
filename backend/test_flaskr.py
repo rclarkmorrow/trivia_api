@@ -169,7 +169,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(question_exists, None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True)
-        self.assertEqual(data['deleted'], str(test_question_id))
+        self.assertEqual(data['deleted'], test_question_id)
         self.assertTrue(data['questions'])
         self.assertTrue(data['total_questions'])
 
