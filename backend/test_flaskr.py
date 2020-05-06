@@ -244,6 +244,26 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_422)
 
+    def test_get_questions_by_category(self):
+        category_id = 1
+        response = self.client().get(
+            f'/api/categories/{category_id}/questions')
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertTrue(data['questions'])
+        self.assertTrue(data['total_questions'])
+        self.assertEqual(data['current_category'], category_id)
+
+    def test_404_category_out_of_range(self):
+        response = self.client().get('api/categories/1000000000000/questions')
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_404)
+
     """
     TODO
     Write at least one test for each test for successful
