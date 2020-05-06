@@ -82,7 +82,7 @@ def create_app(test_config=None):
                     post_question = PostQuestion(form_data)
                     return post_question.response
                 else:
-                    raise Exception('422')
+                    abort(422)
             else:
                 # If no POST data, returns all questions to view.
                 questions = Questions()
@@ -96,6 +96,16 @@ def create_app(test_config=None):
         try:
             delete_question = DeleteQuestion(question_id)
             return delete_question.response
+        except Exception as e:
+            handle_errors(e)
+
+    @app.route('/api/categories/<int:category_id>/questions', methods=['GET'])
+    def questions_by_category(category_id):
+        try:
+            questions = Questions(category_id=category_id)
+            questions.by_category()
+
+            return questions.response
         except Exception as e:
             handle_errors(e)
 
