@@ -224,6 +224,26 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_422)
 
+    def test_search(self):
+        response = self.client().post('api/questions', json={
+            'search_term': 'the'
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data['questions'])
+        self.assertTrue(len(data['questions']))
+
+    def test_422_bad_search(self):
+        response = self.client().post('/api/questions', json={
+            'junk': 'junk data'
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+
     """
     TODO
     Write at least one test for each test for successful
