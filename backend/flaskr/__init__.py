@@ -4,16 +4,29 @@
 
 
 import os
+import random
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-import random
-
+from types import SimpleNamespace
 from models import setup_db, Question, Category
-from config import (QUESTIONS_PER_PAGE, ERROR_404, ERROR_405,
-                    ERROR_422, ERROR_500)
-from responses import Categories, Questions, DeleteQuestion, PostQuestion
-from helpers import handle_errors
+from config import ERROR_404, ERROR_405, ERROR_422, ERROR_500
+from responses import (Categories, Questions, DeleteQuestion,
+                       PostQuestion)
+
+
+""" ---------------------------------------------------------------------------
+#  Helpers
+# --------------------------------------------------------------------------"""
+
+
+def handle_errors(e):
+    if '500' in str(e):
+        abort(500)
+    elif '404' in str(e):
+        abort(404)
+    else:
+        abort(422)
 
 
 """ ---------------------------------------------------------------------------
@@ -48,12 +61,33 @@ def create_app(test_config=None):
         except Exception as e:
             handle_errors(e)
 
-    @app.route('/api/questions', methods=['GET'])
+    # @app.route('api/categories/<int: category_id>', methods=['GET'])
+    # def get_
+
+    @app.route('/api/questions', methods=['GET', 'POST'])
     # Provides a paginated list of questions to the view.
     def get_questions():
         try:
-            questions = Questions()
-            return questions.response
+            if request.method == 'POST':
+                this_request = request.get_json()
+                form_data = SimpleNamespace(**this_request)
+                # Checks POST for a search term and runs search present.
+                if hasattr(form_data, 'search_term'):
+                    questions = Questions(search_term=form_data.search_term)
+                    questions.search()
+                    return questions.response
+                # Checks POST for question data and runs post_question
+                # if present.
+                elif hasattr(form_data, 'question'):
+                    post_question = PostQuestion(form_data)
+                    return post_question.response
+                else:
+                    raise Exception('422')
+            else:
+                # If no POST data, returns all questions to view.
+                questions = Questions()
+                questions.all()
+                return questions.response
         except Exception as e:
             handle_errors(e)
 
@@ -64,25 +98,6 @@ def create_app(test_config=None):
             return delete_question.response
         except Exception as e:
             handle_errors(e)
-
-    @app.route('/api/questions', methods=['POST'])
-    def post_question():
-        try:
-            post_question = PostQuestion()
-            return post_question.response
-        except Exception as e:
-            handle_errors(e)
-
-    '''
-    @TODO:
-    Create a POST endpoint to get questions based on a search term.
-    It should return any questions for whom the search term
-    is a substring of the question.
-
-    TEST: Search by any phrase. The questions list will update to include
-    only question that include that string within their question.
-    Try using the word "title" to start.
-    '''
 
     '''
     @TODO:
