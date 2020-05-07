@@ -31,6 +31,7 @@ def handle_errors(e):
     elif '422' in str(e):
         abort(422, e.description)
     else:
+        print(e)
         abort(500)
 
 
@@ -73,6 +74,9 @@ def create_app(test_config=None):
         try:
             if request.method == 'POST':
                 this_request = request.get_json()
+                # Checks POST for data, if none errors.
+                if not this_request:
+                    abort(400, INVALID_SYNTAX)
                 form_data = SimpleNamespace(**this_request)
                 # Checks POST for a search term and runs search present.
                 if hasattr(form_data, 'search_term'):
@@ -123,9 +127,15 @@ def create_app(test_config=None):
     def play_quizz():
         try:
             this_request = request.get_json()
+            if not this_request:
+                abort(400, INVALID_SYNTAX)
             form_data = SimpleNamespace(**this_request)
-            quiz = Quiz(form_data=form_data)
-            return quiz.response
+            if (hasattr(form_data, 'quiz_category') or
+                    hasattr(form_data, 'previous_questions')):
+                quiz = Quiz(form_data=form_data)
+                return quiz.response
+            else:
+                abort(400, INVALID_SYNTAX)
         except Exception as e:
             handle_errors(e)
 

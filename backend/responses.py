@@ -149,10 +149,10 @@ class PostQuestion:
     def __init__(self, form_data=None):
         self.data = SimpleNamespace(success=True)
         # Checks attributes exist.
-        if (hasattr(form_data, 'question') is False or
-                hasattr(form_data, 'answer') is False or
-                hasattr(form_data, 'difficulty') is False or
-                hasattr(form_data, 'category') is False):
+        if (not hasattr(form_data, 'question') or
+                not hasattr(form_data, 'answer') or
+                not hasattr(form_data, 'difficulty') or
+                not hasattr(form_data, 'category')):
             abort(422, QUESTION_FIELDS_ERR)
 
         # Checks that form data is not empty strings.
@@ -207,6 +207,10 @@ class Quiz:
     def __init__(self, form_data=None):
         self.form_data = form_data
         self.data = SimpleNamespace(success=True)
+        # Verifies fields
+        if (not hasattr(form_data, 'quiz_category') or
+                not hasattr(form_data, 'previous_questions')):
+            abort(422, QUIZ_CATEGORY_ERR)
         # Verifies that category id is an integer.
         if type(form_data.quiz_category) != int:
             return abort(422, QUIZ_CATEGORY_ERR)
