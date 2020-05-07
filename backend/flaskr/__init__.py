@@ -31,7 +31,6 @@ def handle_errors(e):
     elif '422' in str(e):
         abort(422, e.description)
     else:
-        print(e)
         abort(500)
 
 
@@ -92,8 +91,8 @@ def create_app(test_config=None):
 
                     post_question = PostQuestion(form_data)
                     return post_question.response
+                # All other POST requests return a 400 error.
                 else:
-                    # All other POST requests return a 400 error.
                     abort(400, INVALID_SYNTAX)
             else:
                 # If no POST data, returns all questions to view.
@@ -127,13 +126,17 @@ def create_app(test_config=None):
     def play_quizz():
         try:
             this_request = request.get_json()
+            # Verify POST request isn't empty
             if not this_request:
                 abort(400, INVALID_SYNTAX)
             form_data = SimpleNamespace(**this_request)
+            # Check for attributes and run quiz, abort if
+            # none
             if (hasattr(form_data, 'quiz_category') or
                     hasattr(form_data, 'previous_questions')):
                 quiz = Quiz(form_data=form_data)
                 return quiz.response
+            # Error if bad data
             else:
                 abort(400, INVALID_SYNTAX)
         except Exception as e:

@@ -1,3 +1,25 @@
+# Trivia API and Frontend
+
+This project is part of Udacity's Full Stack Nanodegree progam. It is a functional trivia game that allows users to view all questions, list them by category or list them by search.
+
+Users can also add new questions to the available categories, and play quizzes where ten random questions presentend. The user can choose to have these questions drawn from all categories or from a selected category.
+
+The API comes with a starter database and a functional frontend written in React, but the API can can be accessed through endpoints by CLI or a custom frontend. The API also features unittesting to easily recognize errors when implementing changes.
+
+## Intallation
+
+To install the frontend, backend or both instructions located in the files below.
+
+1. [`./frontend/`](./frontend/README.md)
+2. [`./backend/`](./backend/README.md)
+
+I recommend installing both, because while the API also features unittesting, the frontend can show potential UI errors not caught by the tests.
+
+#### Original instructions preserved below:
+
+<br />
+<br />
+
 # Full Stack API Final Project
 
 ## Full Stack Trivia

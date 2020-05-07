@@ -1,4 +1,26 @@
-# Full Stack Trivia API  Frontend
+# Trivia API Frontend
+
+This is a funcitonal frontend for the trivia API. Setup and installation instructions are below.
+
+This frontend allows users to view, create and delete trivia questions in any of six categores:
+
+* Science
+* Art
+* Geography
+* History
+* Entertainment
+* Sports
+
+Users can also play a quiz game where they are given random questions from the entire database or by selected categories, and are scored at the end.
+
+By default, the number of questions is set to 10 but this can be changed.
+
+### Optional configuration
+
+To change the number of questions in a guiz game, change the constant 'questionsPerPlay' in:
+
+ `/frontend/src/components/QuizView.js`
+
 
 ## Getting Setup
 
@@ -19,6 +41,13 @@ npm install
 ```
 
 >_tip_: **npm i** is shorthand for **npm install**
+
+<br /><br />
+
+#### Original instructions preserved below:
+
+<br /><br />
+
 
 ## Required Tasks
 

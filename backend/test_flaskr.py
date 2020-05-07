@@ -130,6 +130,28 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['current_category'], [])
         self.assertTrue(data['categories'])
 
+    def test_400_questions_bad_request(self):
+        """Tests posts requests with unrecognizable data."""
+        response = self.client().post('/api/questions', json={
+            'junk': 'junk data'
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_400)
+        self.assertEqual(data['description'], INVALID_SYNTAX)
+
+    def test_400_questions_no_data(self):
+        """Test 400 response for empty post."""
+        response = self.client().post('/api/questions')
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_400)
+        self.assertEqual(data['description'], INVALID_SYNTAX)
+
     def test_404_get_questions_page_out_of_range(self):
         """Tests request for a page out of range."""
         response = self.client().get('/api/questions?page=10000000000')
@@ -335,7 +357,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['description'], QUESTION_FIELDS_ERR)
 
     def test_422_post_question_missing_field(self):
-        """Tests post with missing field returns 422"""
+        """Tests post with missing fields returns 422"""
         response = self.client().post('/api/questions', json={
             'answer': '',
             'difficulty': ''
@@ -358,19 +380,6 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(data['questions'])
         self.assertTrue(len(data['questions']))
-
-    # Test for bad request
-    def test_400_bad_request(self):
-        """Tests posts requests with unrecognizable data."""
-        response = self.client().post('/api/questions', json={
-            'junk': 'junk data'
-        })
-        data = json.loads(response.data)
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], ERROR_400)
-        self.assertEqual(data['description'], INVALID_SYNTAX)
 
     # Tests for questions by category
     def test_get_questions_by_category_no_args(self):
@@ -399,7 +408,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data['total_questions'])
         self.assertEqual(data['current_category'], category_id)
 
-    def test_404_get_question_by_page_out_of_range(self):
+    def test_404_get_question_by_category_page_out_of_range(self):
         """Tests 404 for a page out of range by category."""
         response = self.client().get('/api/categories/1/questions?page=100000')
         data = json.loads(response.data)
@@ -480,6 +489,28 @@ class TriviaTestCase(unittest.TestCase):
 
             quiz_round += 1
 
+    def test_400_play_quiz_bad_request(self):
+        """Tests posts requests with unrecognizable data."""
+        response = self.client().post('/api/quizzes', json={
+            'junk': 'junk data'
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_400)
+        self.assertEqual(data['description'], INVALID_SYNTAX)
+
+    def test_400_play_quiz_no_data(self):
+        """Test 400 response for empty post."""
+        response = self.client().post('/api/quizzes')
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_400)
+        self.assertEqual(data['description'], INVALID_SYNTAX)
+
     def test_404_play_quiz(self):
         """Test 404 response when quiz category out of range."""
         response = self.client().post('/api/quizzes', json={
@@ -538,6 +569,18 @@ class TriviaTestCase(unittest.TestCase):
         response = self.client().post('/api/quizzes', json={
             'previous_questions': [],
             'quiz_category': -1
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], QUIZ_CATEGORY_ERR)
+    
+    def test_422_play_quiz_category_missing_field(self):
+        """Test 422 when category id is less than zero."""
+        response = self.client().post('/api/quizzes', json={
+            'previous_questions': [],
         })
         data = json.loads(response.data)
 

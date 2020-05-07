@@ -160,19 +160,21 @@ class PostQuestion:
                 or form_data.difficulty == '' or form_data.category == ''):
             abort(422, QUESTION_FIELDS_ERR)
 
+        # Convert string to int if possible, otherwise leave string.
         form_data.category = (int(str(form_data.category)) if
                               str(form_data.category).isdigit() else
                               form_data.category)
-
+        # Verify integer and category exists or error.
         if (type(form_data.category)) != int:
             abort(422, ADD_QUESTION_CATEGORY_ERR)
         elif not Categories().category_exists(form_data.category):
             abort(422, ADD_QUESTION_CATEGORY_ERR)
 
+        # Convert string to int if possible, otherwise leave string.
         form_data.difficulty = (int(str(form_data.difficulty)) if
                                 str(form_data.difficulty).isdigit() else
                                 form_data.difficulty)
-
+        # Verify integer and in range or error.
         if (type(form_data.difficulty)) != int:
             abort(422, ADD_QUESTION_DIFFICULTY_ERR)
         elif form_data.difficulty < 1 or form_data.difficulty > 5:

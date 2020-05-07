@@ -1,3 +1,4 @@
+# Ignore files.
 __pycache__/
 env/
 node_modules/

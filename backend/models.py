@@ -3,6 +3,11 @@ from sqlalchemy import Column, String, Integer, create_engine
 from flask_sqlalchemy import SQLAlchemy
 import json
 
+'''
+Configure database, the default is
+    postgres with username and password.
+'''
+
 db_user = 'postgres'
 db_passw = 'postgres'
 database_name = 'trivia'

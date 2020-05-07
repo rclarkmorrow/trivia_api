@@ -3,7 +3,8 @@ import $ from 'jquery';
 
 import '../stylesheets/QuizView.css';
 
-const questionsPerPlay = 5; 
+// Change this to adjust the number of rounds per game.
+const questionsPerPlay = 10; 
 
 class QuizView extends Component {
   constructor(props){
@@ -54,6 +55,7 @@ class QuizView extends Component {
       contentType: 'application/json',
       data: JSON.stringify({
         previous_questions: previousQuestions,
+        // Below modified to pass integers to the API.
         quiz_category: parseInt(this.state.quizCategory.id)
       }),
       xhrFields: {
