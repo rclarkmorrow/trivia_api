@@ -9,7 +9,8 @@ from models import Question, Category
 from config import (QUESTIONS_PER_PAGE, QUESTION_NOT_FOUND,
                     NO_CATEGORIES_FOUND, NO_QUESTIONS_FOUND, CATEGORY_INT_ERR,
                     QUESTION_FIELDS_ERR, PAGE_INT_ERR, CATEGORY_NOT_FOUND,
-                    PREVIOUS_LIST_ERR, QUIZ_CATEGORY_ERR)
+                    PREVIOUS_LIST_ERR, QUIZ_CATEGORY_ERR,
+                    ADD_QUESTION_CATEGORY_ERR, ADD_QUESTION_DIFFICULTY_ERR)
 
 
 """ ---------------------------------------------------------------------------
@@ -33,6 +34,10 @@ class Categories:
     def get_all_categories(self):
         #
         return Category.query.order_by(Category.type).all()
+
+    def category_exists(self, category_id):
+        return (Category.query
+                .filter_by(id=category_id).scalar() is not None)
 
 
 # Gets questions to pass to views.
@@ -139,7 +144,7 @@ class DeleteQuestion:
         return Question.query .filter(Question.id == question_id).one_or_none()
 
 
-# Posts question to database.
+# Posts question to database
 class PostQuestion:
     def __init__(self, form_data=None):
         self.data = SimpleNamespace(success=True)
@@ -147,6 +152,24 @@ class PostQuestion:
         if (form_data.question.strip() == '' or form_data.answer.strip() == ''
                 or form_data.difficulty == '' or form_data.category == ''):
             abort(422, QUESTION_FIELDS_ERR)
+
+        form_data.category = (int(str(form_data.category)) if
+                              str(form_data.category).isdigit() else
+                              form_data.category)
+
+        if (type(form_data.category)) != int:
+            abort(422, ADD_QUESTION_CATEGORY_ERR)
+        elif not Categories().category_exists(form_data.category):
+            abort(422, ADD_QUESTION_CATEGORY_ERR)
+
+        form_data.difficulty = (int(str(form_data.difficulty)) if
+                                str(form_data.difficulty).isdigit() else
+                                form_data.difficulty)
+
+        if (type(form_data.difficulty)) != int:
+            abort(422, ADD_QUESTION_DIFFICULTY_ERR)
+        elif form_data.difficulty < 1 or form_data.difficulty > 5:
+            abort(422, ADD_QUESTION_DIFFICULTY_ERR)
 
         this_question = Question(
             question=form_data.question.strip(),
@@ -230,8 +253,8 @@ class QuestionsPage:
         # Checks if page can be converted to a positive integer, and
         # paginates response. Otherwise, returns a 422 error.
         else:
-            page = int(page) if page.isdigit() else page
-            
+            page = int(str(page)) if str(page).isdigit() else page
+
             if type(page) == int:
                 if page < 1:
                     abort(422, PAGE_INT_ERR)
@@ -243,3 +266,4 @@ class QuestionsPage:
         # Formats questions for views.
         self.list = (([question.format() for question
                        in question_query])[start:stop])
+

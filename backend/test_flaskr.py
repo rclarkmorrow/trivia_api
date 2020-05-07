@@ -13,7 +13,8 @@ from config import (QUESTIONS_PER_PAGE, ERROR_400,  ERROR_404, ERROR_405,
                     ERROR_422, ERROR_500, INVALID_SYNTAX, QUESTION_NOT_FOUND,
                     NO_CATEGORIES_FOUND, NO_QUESTIONS_FOUND, CATEGORY_INT_ERR,
                     QUESTION_FIELDS_ERR, PAGE_INT_ERR, CATEGORY_NOT_FOUND,
-                    PREVIOUS_LIST_ERR, QUIZ_CATEGORY_ERR)
+                    PREVIOUS_LIST_ERR, QUIZ_CATEGORY_ERR,
+                    ADD_QUESTION_CATEGORY_ERR, ADD_QUESTION_DIFFICULTY_ERR)
 
 
 """ ---------------------------------------------------------------------------
@@ -242,6 +243,81 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True)
         self.assertEqual(data['created'], new_question.id)
+
+    def test_422_post_question_category_not_exist(self):
+        """Test 422 for non-existent category."""
+        response = self.client().post('/api/questions', json={
+            'question': 'What is the airspeed velocity of an unladen swallow?',
+            'answer': 'What do you mean? An African or European swallow?',
+            'difficulty': 5,
+            'category': 100000000000000
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], ADD_QUESTION_CATEGORY_ERR)
+
+    def test_422_post_question_bad_category_str(self):
+        """Test 422 category passed as string."""
+        response = self.client().post('/api/questions', json={
+            'question': 'What is the airspeed velocity of an unladen swallow?',
+            'answer': 'What do you mean? An African or European swallow?',
+            'difficulty': 5,
+            'category': "Science"
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], ADD_QUESTION_CATEGORY_ERR)
+
+    def test_422_post_question_difficulty_greater_than_five(self):
+        """Test 422 difficulty greater than five."""
+        response = self.client().post('/api/questions', json={
+            'question': 'What is the airspeed velocity of an unladen swallow?',
+            'answer': 'What do you mean? An African or European swallow?',
+            'difficulty': 6,
+            'category': 1
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], ADD_QUESTION_DIFFICULTY_ERR)
+    
+    def test_422_post_question_difficulty_less_than_one(self):
+        """Test 422 difficulty less than one."""
+        response = self.client().post('/api/questions', json={
+            'question': 'What is the airspeed velocity of an unladen swallow?',
+            'answer': 'What do you mean? An African or European swallow?',
+            'difficulty': 0,
+            'category': 1
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], ADD_QUESTION_DIFFICULTY_ERR)
+
+    def test_422_post_question_bad_difficulty_str(self):
+        """Test 422 difficulty passed as string."""
+        response = self.client().post('/api/questions', json={
+            'question': 'What is the airspeed velocity of an unladen swallow?',
+            'answer': 'What do you mean? An African or European swallow?',
+            'difficulty': "Super duper hard!!",
+            'category': 1
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], ADD_QUESTION_DIFFICULTY_ERR)
 
     def test_422_post_empty_question(self):
         """Tests post with empty fields returns 422"""
