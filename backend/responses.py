@@ -8,7 +8,8 @@ from types import SimpleNamespace
 from models import Question, Category
 from config import (QUESTIONS_PER_PAGE, QUESTION_NOT_FOUND,
                     NO_CATEGORIES_FOUND, NO_QUESTIONS_FOUND, CATEGORY_INT_ERR,
-                    QUESTION_FIELDS_ERR, PAGE_INT_ERR, CATEGORY_NOT_FOUND)
+                    QUESTION_FIELDS_ERR, PAGE_INT_ERR, CATEGORY_NOT_FOUND,
+                    PREVIOUS_LIST_ERR, QUIZ_CATEGORY_ERR)
 
 
 """ ---------------------------------------------------------------------------
@@ -140,6 +141,46 @@ class PostQuestion:
 
     def get_last_question(self):
         return Question.query.order_by(Question.id.desc()).first()
+
+
+class Quiz:
+    def __init__(self, form_data=None):
+        self.form_data = form_data
+        self.data = SimpleNamespace(success=True)
+
+        if type(form_data.quiz_category) != int:
+            return abort(422, QUIZ_CATEGORY_ERR)
+
+        if form_data.quiz_category < 0:
+            abort(422, QUIZ_CATEGORY_ERR)
+
+        if type(form_data.previous_questions) == list:
+            for question in form_data.previous_questions:
+                if type(question) != int:
+                    abort(422, PREVIOUS_LIST_ERR)
+        else:
+            abort(422, PREVIOUS_LIST_ERR)
+
+        all_questions = self.get_quizz_questions(form_data.quiz_category)
+
+        if len(all_questions) < 1:
+            abort(404, CATEGORY_NOT_FOUND)
+
+        available_questions = [question for question in all_questions if
+                               question.id not in form_data.previous_questions]
+        if available_questions:
+            this_question = random.choice(available_questions).format()
+        else:
+            this_question = None
+        self.data.question = this_question
+        self.response = jsonify(self.data.__dict__), 200
+
+    def get_quizz_questions(self, category_id):
+        if category_id != 0:
+            return (Question.query
+                    .filter(Question.category == category_id).all())
+        else:
+            return Question.query.all()
 
 
 class QuestionsPage:
