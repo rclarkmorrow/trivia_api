@@ -10,9 +10,9 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from types import SimpleNamespace
 from models import setup_db, Question, Category
-from config import ERROR_404, ERROR_405, ERROR_422, ERROR_500
-from responses import (Categories, Questions, DeleteQuestion,
-                       PostQuestion)
+from config import (ERROR_400, ERROR_404, ERROR_405, ERROR_422, ERROR_500,
+                    INVALID_SYNTAX)
+from responses import Categories, Questions, DeleteQuestion, PostQuestion
 
 
 """ ---------------------------------------------------------------------------
@@ -21,12 +21,16 @@ from responses import (Categories, Questions, DeleteQuestion,
 
 
 def handle_errors(e):
-    if '500' in str(e):
-        abort(500)
-    elif '404' in str(e):
-        abort(404)
+    if '400' in str(e):
+        abort(400, e.description)
+    if '404' in str(e):
+        abort(404, e.description)
+    elif '405' in str(e):
+        abort(405, e.description)
+    elif '422' in str(e):
+        abort(422, e.description)
     else:
-        abort(422)
+        abort(500)
 
 
 """ ---------------------------------------------------------------------------
@@ -61,9 +65,6 @@ def create_app(test_config=None):
         except Exception as e:
             handle_errors(e)
 
-    # @app.route('api/categories/<int: category_id>', methods=['GET'])
-    # def get_
-
     @app.route('/api/questions', methods=['GET', 'POST'])
     # Provides a paginated list of questions to the view.
     def get_questions():
@@ -82,7 +83,7 @@ def create_app(test_config=None):
                     post_question = PostQuestion(form_data)
                     return post_question.response
                 else:
-                    abort(422)
+                    abort(400, INVALID_SYNTAX)
             else:
                 # If no POST data, returns all questions to view.
                 questions = Questions()
@@ -100,23 +101,13 @@ def create_app(test_config=None):
             handle_errors(e)
 
     @app.route('/api/categories/<int:category_id>/questions', methods=['GET'])
-    def questions_by_category(category_id):
+    def get_questions_by_category(category_id):
         try:
             questions = Questions(category_id=category_id)
             questions.by_category()
-
             return questions.response
         except Exception as e:
             handle_errors(e)
-
-    '''
-    @TODO:
-    Create a GET endpoint to get questions based on category.
-
-    TEST: In the "List" tab / main screen, clicking on one of the
-    categories in the left column will cause only questions of that
-    category to be shown.
-    '''
 
     '''
     @TODO:
@@ -131,12 +122,22 @@ def create_app(test_config=None):
     '''
 
 # Error handlers
+    @app.errorhandler(400)
+    def bad_request(error):
+        return jsonify({
+            'success': False,
+            'error': 400,
+            'message': ERROR_400,
+            'description': error.description
+        }), 400
+
     @app.errorhandler(404)
     def not_found(error):
         return jsonify({
             'success': False,
             'error': 404,
-            'message': ERROR_404
+            'message': ERROR_404,
+            'description': error.description
         }), 404
 
     @app.errorhandler(405)
@@ -144,7 +145,8 @@ def create_app(test_config=None):
         return jsonify({
             'success': False,
             'error': 405,
-            'message': ERROR_405
+            'message': ERROR_405,
+            'description': error.description
         }), 405
 
     @app.errorhandler(422)
@@ -152,7 +154,8 @@ def create_app(test_config=None):
         return jsonify({
             'success': False,
             'error': 422,
-            'message': ERROR_422
+            'message': ERROR_422,
+            'description': error.description
         }), 422
 
     @app.errorhandler(500)

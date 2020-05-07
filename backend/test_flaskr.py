@@ -6,11 +6,14 @@ import os
 import unittest
 import json
 from flask_sqlalchemy import SQLAlchemy
-
 from flaskr import create_app
+from types import SimpleNamespace
 from models import setup_db, Question, Category
-from config import (QUESTIONS_PER_PAGE, ERROR_404, ERROR_405,
-                    ERROR_422, ERROR_500)
+from config import (QUESTIONS_PER_PAGE, ERROR_400,  ERROR_404, ERROR_405,
+                    ERROR_422, ERROR_500, INVALID_SYNTAX, QUESTION_NOT_FOUND,
+                    NO_CATEGORIES_FOUND, NO_QUESTIONS_FOUND, CATEGORY_INT_ERR,
+                    QUESTION_FIELDS_ERR, PAGE_INT_ERR, CATEGORY_NOT_FOUND,
+                    PREVIOUS_LIST_ERR, QUIZ_CATEGORY_ERR)
 
 
 """ ---------------------------------------------------------------------------
@@ -113,7 +116,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['current_category'], [])
         self.assertTrue(data['categories'])
 
-    def test_404_questions_invalid_page_range(self):
+    def test_404_get_questions_page_out_of_range(self):
         """Tests request for a page out of range."""
         response = self.client().get('/api/questions?page=10000000000')
         data = json.loads(response.data)
@@ -121,6 +124,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_404)
+        self.assertEqual(data['description'], NO_QUESTIONS_FOUND)
 
     def test_405_patch_questions(self):
         """Tests patch method not allowed on questions"""
@@ -152,7 +156,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_405)
 
-    def test_422_questions(self):
+    def test_422_get_questions(self):
         """Test 422 error on requesting page < 1."""
         response = self.client().get('/api/questions?page=0')
         data = json.loads(response.data)
@@ -160,6 +164,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], PAGE_INT_ERR)
 
     # Tests for delete_questions
     def test_delete_question(self):
@@ -188,13 +193,14 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data['total_questions'])
 
     def test_404_delete_question(self):
-        """Test delete method for 404 on non-existant question."""
-        response = self.client().delete('/api/questions/junk')
+        """Test delete method for 404 on non-existent question."""
+        response = self.client().delete('/api/questions/1000000000000000000')
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_404)
+        self.assertEqual(data['description'], QUESTION_NOT_FOUND)
 
     def test_post_question(self):
         """Test whether a new question posts"""
@@ -204,13 +210,16 @@ class TriviaTestCase(unittest.TestCase):
             'difficulty': 5,
             'category': 1
         })
+
+        """ Get latest question to verify id matches."""
+        new_question = Question.query.order_by(Question.id.desc()).first()
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True)
-        self.assertTrue(data['created'])
+        self.assertEqual(data['created'], new_question.id)
 
-    def test_422_empty_question(self):
+    def test_422_post_empty_question(self):
         """Tests post with empty fields returns 422"""
         response = self.client().post('/api/questions', json={
             'question': '',
@@ -223,6 +232,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], QUESTION_FIELDS_ERR)
 
     def test_search(self):
         response = self.client().post('api/questions', json={
@@ -234,15 +244,16 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data['questions'])
         self.assertTrue(len(data['questions']))
 
-    def test_422_bad_search(self):
+    def test_400_bad_request(self):
         response = self.client().post('/api/questions', json={
             'junk': 'junk data'
         })
         data = json.loads(response.data)
 
-        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['message'], ERROR_400)
+        self.assertEqual(data['description'], INVALID_SYNTAX)
 
     def test_get_questions_by_category(self):
         category_id = 1
@@ -256,19 +267,111 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data['total_questions'])
         self.assertEqual(data['current_category'], category_id)
 
-    def test_404_category_out_of_range(self):
-        response = self.client().get('api/categories/1000000000000/questions')
+    def test_404_get_question_by_category_out_of_range(self):
+        response = self.client().get('/api/categories/1000000000000/questions')
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_404)
 
-    """
-    TODO
-    Write at least one test for each test for successful
-    operation and for expected errors.
-    """
+    def test_422_get_question_by_category_unprocessable(self):
+        response = self.client().get('/api/categories/0/questions')
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], CATEGORY_INT_ERR)
+
+    def test_play_quizz(self):
+        quiz_round = 1
+        is_duplicate = False
+        quiz_data = SimpleNamespace(previous_questions=[],
+                                    quiz_category=0)
+        """Simulates five quiz rounds."""
+        while quiz_round < 6:
+            """For each round, format JSON post."""
+            quiz_post = {
+                'previous_questions': quiz_data.previous_questions,
+                'quiz_category': quiz_data.quiz_category
+            }
+            response = self.client().post('/api/quizzes', json=quiz_post)
+            data = json.loads(response.data)
+            this_question = SimpleNamespace(**data['question'])
+            """Verifies that the question is new"""
+            if this_question.id in quiz_data.previous_questions:
+                is_duplicate = True
+            """Update previous questions list to simulate frontend."""
+            quiz_data.previous_questions.append(this_question.id)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(data['success'], True)
+            self.assertTrue(data['question'])
+            self.assertEqual(len(quiz_data.previous_questions), quiz_round)
+            self.assertEqual(is_duplicate, False)
+
+            quiz_round += 1
+
+    def test_404_play_quiz(self):
+        response = self.client().post('/api/quizzes', json={
+            'previous_questions': [],
+            'quiz_category': 100000000000
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_404)
+        self.assertEqual(data['description'], CATEGORY_NOT_FOUND)
+
+    def test_422_play_quiz_previous_questions_not_int(self):
+        response = self.client().post('/api/quizzes', json={
+            'previous_questions': ['this is', 'not a list', 'of ints'],
+            'quiz_category': 0
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], PREVIOUS_LIST_ERR)
+
+    def test_422_play_quiz_previous_questions_not_list(self):
+        response = self.client().post('/api/quizzes', json={
+            'previous_questions': 'this is not a list',
+            'quiz_category': 0
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], PREVIOUS_LIST_ERR)
+
+    def test_422_play_quiz_category_not_int(self):
+        response = self.client().post('/api/quizzes', json={
+            'previous_questions': [],
+            'quiz_category': 'this is not an int'
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], QUIZ_CATEGORY_ERR)
+
+    def test_422_play_quiz_category_less_than_zero(self):
+        response = self.client().post('/api/quizzes', json={
+            'previous_questions': [],
+            'quiz_category': -1
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], QUIZ_CATEGORY_ERR)
 
 
 # Make the tests conveniently executable

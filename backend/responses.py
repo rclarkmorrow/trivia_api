@@ -6,7 +6,9 @@ import random
 from flask import jsonify, request, abort
 from types import SimpleNamespace
 from models import Question, Category
-from config import QUESTIONS_PER_PAGE
+from config import (QUESTIONS_PER_PAGE, QUESTION_NOT_FOUND,
+                    NO_CATEGORIES_FOUND, NO_QUESTIONS_FOUND, CATEGORY_INT_ERR,
+                    QUESTION_FIELDS_ERR, PAGE_INT_ERR, CATEGORY_NOT_FOUND)
 
 
 """ ---------------------------------------------------------------------------
@@ -21,7 +23,7 @@ class Categories:
         query = self.get_all_categories()
         self.list = {category.id: category.type for category in query}
         if len(self.list) < 1:
-            abort(404)
+            abort(404, NO_CATEGORIES_FOUND)
 
         self.data.categories = self.list
         self.response = jsonify(self.data.__dict__), 200
@@ -43,7 +45,7 @@ class Questions:
         self.questions = QuestionsPage(request, self.query)
         self.categories = Categories()
         if check_page_range and len(self.questions.list) < 1:
-            abort(404)
+            abort(404, NO_QUESTIONS_FOUND)
         self.data.questions = self.questions.list
         self.data.total_questions = len(self.query)
         self.data.current_category = []
@@ -59,10 +61,13 @@ class Questions:
         self.response = jsonify(self.data.__dict__), 200
 
     def by_category(self):
+        if self.category_id < 1:
+            abort(422, CATEGORY_INT_ERR)
+
         self.query = self.get_questions_by_category(self.category_id)
 
         if len(self.query) < 1:
-            abort(404)
+            abort(404, CATEGORY_NOT_FOUND)
 
         self.questions = QuestionsPage(request, self.query)
         self.data.questions = self.questions.list
@@ -88,7 +93,7 @@ class DeleteQuestion:
         this_question = self.get_single_question(question_id)
 
         if this_question is None:
-            abort(404)
+            abort(404, QUESTION_NOT_FOUND)
 
         this_question.delete()
         questions = Questions()
@@ -112,7 +117,7 @@ class PostQuestion:
         # Checks that form data is not empty strings.
         if (form_data.question.strip() == '' or form_data.answer.strip() == ''
                 or form_data.difficulty == '' or form_data.category == ''):
-            abort(422)
+            abort(422, QUESTION_FIELDS_ERR)
 
         this_question = Question(
             question=form_data.question.strip(),
@@ -128,7 +133,7 @@ class PostQuestion:
         # Check new question id is greater than latest question id
         # before insert.
         if last_question.id >= new_question.id:
-            abort(422)
+            abort(500)
 
         self.data.created = new_question.id
         self.response = jsonify(self.data.__dict__), 200
@@ -137,18 +142,12 @@ class PostQuestion:
         return Question.query.order_by(Question.id.desc()).first()
 
 
-# -----------------------------------------------------------------------------
-# Helpers
-# -----------------------------------------------------------------------------
-
 class QuestionsPage:
     def __init__(self, request, question_list):
-        if request is None or question_list is None:
-            abort(422)
         page = request.args.get('page', 1, type=int)
 
         if page < 1:
-            abort(422)
+            abort(422, PAGE_INT_ERR)
 
         start = (page - 1) * QUESTIONS_PER_PAGE
         stop = start + QUESTIONS_PER_PAGE
