@@ -288,7 +288,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_422)
         self.assertEqual(data['description'], ADD_QUESTION_DIFFICULTY_ERR)
-    
+
     def test_422_post_question_difficulty_less_than_one(self):
         """Test 422 difficulty less than one."""
         response = self.client().post('/api/questions', json={
@@ -325,7 +325,20 @@ class TriviaTestCase(unittest.TestCase):
             'question': '',
             'answer': '',
             'difficulty': '',
-            'category': '',
+            'category': ''
+        })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], ERROR_422)
+        self.assertEqual(data['description'], QUESTION_FIELDS_ERR)
+
+    def test_422_post_question_missing_field(self):
+        """Tests post with missing field returns 422"""
+        response = self.client().post('/api/questions', json={
+            'answer': '',
+            'difficulty': ''
         })
         data = json.loads(response.data)
 

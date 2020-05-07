@@ -148,6 +148,13 @@ class DeleteQuestion:
 class PostQuestion:
     def __init__(self, form_data=None):
         self.data = SimpleNamespace(success=True)
+        # Checks attributes exist.
+        if (hasattr(form_data, 'question') is False or
+                hasattr(form_data, 'answer') is False or
+                hasattr(form_data, 'difficulty') is False or
+                hasattr(form_data, 'category') is False):
+            abort(422, QUESTION_FIELDS_ERR)
+
         # Checks that form data is not empty strings.
         if (form_data.question.strip() == '' or form_data.answer.strip() == ''
                 or form_data.difficulty == '' or form_data.category == ''):
@@ -266,4 +273,3 @@ class QuestionsPage:
         # Formats questions for views.
         self.list = (([question.format() for question
                        in question_query])[start:stop])
-

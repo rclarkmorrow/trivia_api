@@ -4,7 +4,6 @@
 
 
 import os
-import random
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -20,6 +19,8 @@ from responses import Categories, Questions, DeleteQuestion, PostQuestion, Quiz
 # --------------------------------------------------------------------------"""
 
 
+# Parses HTTP aborts, and passes additional context to
+# reponse JSON. Defaults to a 500 error.
 def handle_errors(e):
     if '400' in str(e):
         abort(400, e.description)
@@ -66,7 +67,8 @@ def create_app(test_config=None):
             handle_errors(e)
 
     @app.route('/api/questions', methods=['GET', 'POST'])
-    # Provides a paginated list of questions to the view.
+    # Handles GET requests to return questions to the view, and POST requests
+    # for search terms and adding new questions to the database.
     def get_questions():
         try:
             if request.method == 'POST':
@@ -79,10 +81,15 @@ def create_app(test_config=None):
                     return questions.response
                 # Checks POST for question data and runs post_question
                 # if present.
-                elif hasattr(form_data, 'question'):
+                elif (hasattr(form_data, 'question') or
+                      hasattr(form_data, 'answer') or
+                      hasattr(form_data, 'difficulty') or
+                      hasattr(form_data, 'category')):
+
                     post_question = PostQuestion(form_data)
                     return post_question.response
                 else:
+                    # All other POST requests return a 400 error.
                     abort(400, INVALID_SYNTAX)
             else:
                 # If no POST data, returns all questions to view.
@@ -93,6 +100,7 @@ def create_app(test_config=None):
             handle_errors(e)
 
     @app.route('/api/questions/<int:question_id>', methods=['DELETE'])
+    # Deletes a question from the database.
     def delete_question(question_id):
         try:
             delete_question = DeleteQuestion(question_id)
@@ -101,6 +109,7 @@ def create_app(test_config=None):
             handle_errors(e)
 
     @app.route('/api/categories/<int:category_id>/questions', methods=['GET'])
+    # Gets questions by category id.
     def get_questions_by_category(category_id):
         try:
             questions = Questions(category_id=category_id)
@@ -110,6 +119,7 @@ def create_app(test_config=None):
             handle_errors(e)
 
     @app.route('/api/quizzes', methods=['POST'])
+    # Launches quiz game based on user selection.
     def play_quizz():
         try:
             this_request = request.get_json()
