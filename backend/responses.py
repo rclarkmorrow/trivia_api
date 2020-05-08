@@ -32,10 +32,11 @@ class Categories:
         self.response = jsonify(self.data.__dict__), 200
 
     def get_all_categories(self):
-        #
+        # Get all categories from the database.
         return Category.query.order_by(Category.type).all()
 
     def category_exists(self, category_id):
+        # Checks if category exists.
         return (Category.query
                 .filter_by(id=category_id).scalar() is not None)
 
@@ -262,7 +263,7 @@ class QuestionsPage:
         # If page is none, returns all questions
         if page is None:
             start = 0
-            stop = -1
+            stop = None
         # Checks if page can be converted to a positive integer, and
         # paginates response. Otherwise, returns a 422 error.
         else:

@@ -154,8 +154,8 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_404_get_questions_page_out_of_range(self):
         """Tests request for a page out of range."""
-        response = self.client().get('/api/questions?page=10000000000')
-        data = json.loads(response.data)
+        response = self.client().get('/api/questions?page=100000')
+        data = json.loads(response.data)                  
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(data['success'], False)
@@ -240,7 +240,7 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_404_delete_question(self):
         """Test delete method for 404 on non-existent question."""
-        response = self.client().delete('/api/questions/1000000000000000000')
+        response = self.client().delete('/api/questions/100000')
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 404)
@@ -272,7 +272,7 @@ class TriviaTestCase(unittest.TestCase):
             'question': 'What is the airspeed velocity of an unladen swallow?',
             'answer': 'What do you mean? An African or European swallow?',
             'difficulty': 5,
-            'category': 100000000000000
+            'category': 100000
         })
         data = json.loads(response.data)
 
@@ -419,7 +419,7 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_404_get_question_by_category_out_of_range(self):
         """Tests 404 for a category out of range."""
-        response = self.client().get('/api/categories/1000000000000/questions')
+        response = self.client().get('/api/categories/100000/questions')
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 404)
@@ -515,7 +515,7 @@ class TriviaTestCase(unittest.TestCase):
         """Test 404 response when quiz category out of range."""
         response = self.client().post('/api/quizzes', json={
             'previous_questions': [],
-            'quiz_category': 100000000000
+            'quiz_category': 100000
         })
         data = json.loads(response.data)
 
