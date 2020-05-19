@@ -3,35 +3,14 @@
 # --------------------------------------------------------------------------"""
 
 
-import os
 from flask import Flask, request, abort, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from types import SimpleNamespace
-from models import setup_db, Question, Category
+from models import setup_db
 from config import (ERROR_400, ERROR_404, ERROR_405, ERROR_422, ERROR_500,
                     INVALID_SYNTAX)
-from responses import Categories, Questions, DeleteQuestion, PostQuestion, Quiz
-
-
-""" ---------------------------------------------------------------------------
-#  Helpers
-# --------------------------------------------------------------------------"""
-
-
-# Parses HTTP aborts, and passes additional context to
-# reponse JSON. Defaults to a 500 error.
-def handle_errors(e):
-    if '400' in str(e):
-        abort(400, e.description)
-    if '404' in str(e):
-        abort(404, e.description)
-    elif '405' in str(e):
-        abort(405, e.description)
-    elif '422' in str(e):
-        abort(422, e.description)
-    else:
-        abort(500)
+from responses import (Categories, Questions, DeleteQuestion, PostQuestion,
+                       Quiz, StatusError)
 
 
 """ ---------------------------------------------------------------------------
@@ -45,7 +24,7 @@ def create_app(test_config=None):
     app = Flask(__name__)
     setup_db(app)
     # Setup CORS. Allow '*' for origins
-    cors = CORS(app, resources={r'/api/*': {'origins': '*'}})
+    CORS(app, resources={r'/api/*': {'origins': '*'}})
 
     @app.after_request
     def after_request(response):
@@ -60,89 +39,85 @@ def create_app(test_config=None):
     @app.route('/api/categories', methods=['GET'])
     # Provides a list of categories to the view.
     def get_categories():
-        try:
-            categories = Categories()
-            return categories.response
-        except Exception as e:
-            handle_errors(e)
+        categories = Categories()
+        return categories.response
 
     @app.route('/api/questions', methods=['GET', 'POST'])
     # Handles GET requests to return questions to the view, and POST requests
     # for search terms and adding new questions to the database.
     def get_questions():
-        try:
-            if request.method == 'POST':
-                this_request = request.get_json()
-                # Checks POST for data, if none errors.
-                if not this_request:
-                    abort(400, INVALID_SYNTAX)
-                form_data = SimpleNamespace(**this_request)
-                # Checks POST for a search term and runs search present.
-                if hasattr(form_data, 'search_term'):
-                    questions = Questions(search_term=form_data.search_term)
-                    questions.search()
-                    return questions.response
-                # Checks POST for question data and runs post_question
-                # if present.
-                elif (hasattr(form_data, 'question') or
-                      hasattr(form_data, 'answer') or
-                      hasattr(form_data, 'difficulty') or
-                      hasattr(form_data, 'category')):
-
-                    post_question = PostQuestion(form_data)
-                    return post_question.response
-                # All other POST requests return a 400 error.
-                else:
-                    abort(400, INVALID_SYNTAX)
-            else:
-                # If no POST data, returns all questions to view.
-                questions = Questions()
-                questions.all()
+        if request.method == 'POST':
+            this_request = request.get_json()
+            # Checks POST for data, if none errors.
+            if not this_request:
+                abort(400, INVALID_SYNTAX)
+            form_data = SimpleNamespace(**this_request)
+            # Checks POST for a search term and runs search present.
+            if hasattr(form_data, 'search_term'):
+                questions = Questions(search_term=form_data.search_term)
+                questions.search()
                 return questions.response
-        except Exception as e:
-            handle_errors(e)
+            # Checks POST for question data and runs post_question
+            # if present.
+            elif (hasattr(form_data, 'question') or
+                    hasattr(form_data, 'answer') or
+                    hasattr(form_data, 'difficulty') or
+                    hasattr(form_data, 'category')):
+
+                post_question = PostQuestion(form_data)
+                return post_question.response
+            # All other POST requests return a 400 error.
+            else:
+                abort(400, INVALID_SYNTAX)
+        else:
+            # If no POST data, returns all questions to view.
+            questions = Questions()
+            questions.all()
+            return questions.response
 
     @app.route('/api/questions/<int:question_id>', methods=['DELETE'])
     # Deletes a question from the database.
     def delete_question(question_id):
-        try:
-            delete_question = DeleteQuestion(question_id)
-            return delete_question.response
-        except Exception as e:
-            handle_errors(e)
+
+        delete_question = DeleteQuestion(question_id)
+        return delete_question.response
 
     @app.route('/api/categories/<int:category_id>/questions', methods=['GET'])
     # Gets questions by category id.
     def get_questions_by_category(category_id):
-        try:
-            questions = Questions(category_id=category_id)
-            questions.by_category()
-            return questions.response
-        except Exception as e:
-            handle_errors(e)
+        questions = Questions(category_id=category_id)
+        questions.by_category()
+        return questions.response
 
     @app.route('/api/quizzes', methods=['POST'])
     # Launches quiz game based on user selection.
     def play_quizz():
-        try:
-            this_request = request.get_json()
-            # Verify POST request isn't empty
-            if not this_request:
-                abort(400, INVALID_SYNTAX)
-            form_data = SimpleNamespace(**this_request)
-            # Check for attributes and run quiz, abort if
-            # none
-            if (hasattr(form_data, 'quiz_category') or
-                    hasattr(form_data, 'previous_questions')):
-                quiz = Quiz(form_data=form_data)
-                return quiz.response
-            # Error if bad data
-            else:
-                abort(400, INVALID_SYNTAX)
-        except Exception as e:
-            handle_errors(e)
+        this_request = request.get_json()
+        # Verify POST request isn't empty
+        if not this_request:
+            abort(400, INVALID_SYNTAX)
+        form_data = SimpleNamespace(**this_request)
+        # Check for attributes and run quiz, abort if
+        # none
+        if (hasattr(form_data, 'quiz_category') or
+                hasattr(form_data, 'previous_questions')):
+            quiz = Quiz(form_data=form_data)
+            return quiz.response
+        # Error if bad data
+        else:
+            abort(400, INVALID_SYNTAX)
 
 # Error handlers
+
+    @app.errorhandler(StatusError)
+    def auth_error(error):
+        return jsonify({
+            'success': False,
+            'error': error.status_code,
+            'message': error.message,
+            'description': error.description
+        }), error.status_code
+
     @app.errorhandler(400)
     def bad_request(error):
         return jsonify({

@@ -2,15 +2,15 @@
 # Imports
 # --------------------------------------------------------------------------"""
 
-import os
+
 import unittest
 import json
 from flask_sqlalchemy import SQLAlchemy
 from flaskr import create_app
 from types import SimpleNamespace
-from models import setup_db, Question, Category
+from models import setup_db, Question
 from config import (QUESTIONS_PER_PAGE, ERROR_400,  ERROR_404, ERROR_405,
-                    ERROR_422, ERROR_500, INVALID_SYNTAX, QUESTION_NOT_FOUND,
+                    ERROR_422, INVALID_SYNTAX, QUESTION_NOT_FOUND,
                     NO_CATEGORIES_FOUND, NO_QUESTIONS_FOUND, CATEGORY_INT_ERR,
                     QUESTION_FIELDS_ERR, PAGE_INT_ERR, CATEGORY_NOT_FOUND,
                     PREVIOUS_LIST_ERR, QUIZ_CATEGORY_ERR,
@@ -155,7 +155,7 @@ class TriviaTestCase(unittest.TestCase):
     def test_404_get_questions_page_out_of_range(self):
         """Tests request for a page out of range."""
         response = self.client().get('/api/questions?page=100000')
-        data = json.loads(response.data)                  
+        data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(data['success'], False)
@@ -576,7 +576,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], ERROR_422)
         self.assertEqual(data['description'], QUIZ_CATEGORY_ERR)
-    
+
     def test_422_play_quiz_category_missing_field(self):
         """Test 422 when category id is less than zero."""
         response = self.client().post('/api/quizzes', json={

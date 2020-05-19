@@ -3,14 +3,42 @@
 # --------------------------------------------------------------------------"""
 
 import random
-from flask import jsonify, request, abort
+from flask import jsonify, request
 from types import SimpleNamespace
 from models import Question, Category
 from config import (QUESTIONS_PER_PAGE, QUESTION_NOT_FOUND,
                     NO_CATEGORIES_FOUND, NO_QUESTIONS_FOUND, CATEGORY_INT_ERR,
                     QUESTION_FIELDS_ERR, PAGE_INT_ERR, CATEGORY_NOT_FOUND,
                     PREVIOUS_LIST_ERR, QUIZ_CATEGORY_ERR,
-                    ADD_QUESTION_CATEGORY_ERR, ADD_QUESTION_DIFFICULTY_ERR)
+                    ADD_QUESTION_CATEGORY_ERR, ADD_QUESTION_DIFFICULTY_ERR,
+                    ERROR_404, ERROR_422, ERROR_500)
+
+""" ---------------------------------------------------------------------------
+# Error Handling
+# --------------------------------------------------------------------------"""
+
+
+# Raise exceptions as HTTP status code errors.
+class StatusError(Exception):
+    def __init__(self, message, description, status_code):
+        self.message = message
+        self.status_code = status_code
+        self.description = description
+
+
+""" ---------------------------------------------------------------------------
+# Helper Functions
+# --------------------------------------------------------------------------"""
+
+
+# Convert string to integer and return if possible, raise 422 error if not.
+def string_to_int(value, description):
+    if (type(value)) != int:
+        try:
+            value = int(value)
+        except ValueError:
+            raise StatusError(ERROR_422, description, 422)
+    return value
 
 
 """ ---------------------------------------------------------------------------
@@ -26,7 +54,7 @@ class Categories:
         self.list = {category.id: category.type for category in query}
         # Returns 404 if database contains no categories.
         if len(self.list) < 1:
-            abort(404, NO_CATEGORIES_FOUND)
+            raise StatusError(ERROR_404, NO_CATEGORIES_FOUND, 404)
         # Structures data and builds response JSON.
         self.data.categories = self.list
         self.response = jsonify(self.data.__dict__), 200
@@ -58,7 +86,7 @@ class Questions:
         # Unless disabled, returns a 404 if the list of questions
         # is empty.
         if check_page_length is True and len(self.questions.list) < 1:
-            abort(404, NO_QUESTIONS_FOUND)
+            raise StatusError(ERROR_404, NO_QUESTIONS_FOUND, 404)
         # Structures data and builds response JSON.
         self.data.questions = self.questions.list
         self.data.total_questions = len(self.query)
@@ -74,7 +102,7 @@ class Questions:
         # is empty. I believe a search returning an empty list is a
         # better user experience than an error alert.
         if check_page_length is True and len(self.questions.list) < 1:
-            abort(404, NO_QUESTIONS_FOUND)
+            raise StatusError(ERROR_404, NO_QUESTIONS_FOUND, 404)
         # Structures data and builds response JSON.
         self.data.questions = self.questions.list
         self.data.total_questions = len(self.query)
@@ -85,18 +113,17 @@ class Questions:
         # Returns questions by category to views.
 
         # Verifies that the category id is an integer.
-        if type(self.category_id) != int:
-            abort(422, CATEGORY_INT_ERR)
+        self.category_id = string_to_int(self.category_id, CATEGORY_INT_ERR)
         # Verifies that the category id is not 0 or negative.
         if self.category_id < 1:
-            abort(422, CATEGORY_INT_ERR)
-
+            raise StatusError(ERROR_422, CATEGORY_INT_ERR, 422)
+        # Get questions by category and paginate if requested.
         self.query = self.get_questions_by_category(self.category_id)
         self.questions = QuestionsPage(request, self.query)
         # Unless disabled, returns a 404 error if the category returns
         # no questions because it doesn't exist or has no questions.
         if check_page_length is True and len(self.questions.list) < 1:
-            abort(404, CATEGORY_NOT_FOUND)
+            raise StatusError(ERROR_404, CATEGORY_NOT_FOUND, 404)
         # Structures data, and builds response JSON.
         self.data.questions = self.questions.list
         self.data.total_questions = len(self.query)
@@ -125,7 +152,7 @@ class DeleteQuestion:
         # Returns 404 if a delete request is sent for a non-existent
         # question.
         if this_question is None:
-            abort(404, QUESTION_NOT_FOUND)
+            raise StatusError(ERROR_404, QUESTION_NOT_FOUND, 404)
 
         this_question.delete()
         questions = Questions()
@@ -154,32 +181,25 @@ class PostQuestion:
                 not hasattr(form_data, 'answer') or
                 not hasattr(form_data, 'difficulty') or
                 not hasattr(form_data, 'category')):
-            abort(422, QUESTION_FIELDS_ERR)
+            raise StatusError(ERROR_422, QUESTION_FIELDS_ERR, 422)
 
         # Checks that form data is not empty strings.
         if (form_data.question.strip() == '' or form_data.answer.strip() == ''
                 or form_data.difficulty == '' or form_data.category == ''):
-            abort(422, QUESTION_FIELDS_ERR)
-
-        # Convert string to int if possible, otherwise leave string.
-        form_data.category = (int(str(form_data.category)) if
-                              str(form_data.category).isdigit() else
-                              form_data.category)
+            raise StatusError(ERROR_422, QUESTION_FIELDS_ERR, 422)
         # Verify integer and category exists or error.
         if (type(form_data.category)) != int:
-            abort(422, ADD_QUESTION_CATEGORY_ERR)
+            try:
+                form_data.category = int(form_data.category)
+            except ValueError:
+                raise StatusError(ERROR_422, ADD_QUESTION_CATEGORY_ERR, 422)
         elif not Categories().category_exists(form_data.category):
-            abort(422, ADD_QUESTION_CATEGORY_ERR)
-
-        # Convert string to int if possible, otherwise leave string.
-        form_data.difficulty = (int(str(form_data.difficulty)) if
-                                str(form_data.difficulty).isdigit() else
-                                form_data.difficulty)
+            raise StatusError(ERROR_422, ADD_QUESTION_CATEGORY_ERR, 422)
         # Verify integer and in range or error.
-        if (type(form_data.difficulty)) != int:
-            abort(422, ADD_QUESTION_DIFFICULTY_ERR)
-        elif form_data.difficulty < 1 or form_data.difficulty > 5:
-            abort(422, ADD_QUESTION_DIFFICULTY_ERR)
+        form_data.difficulty = string_to_int(form_data.difficulty,
+                                             ADD_QUESTION_DIFFICULTY_ERR)
+        if form_data.difficulty < 1 or form_data.difficulty > 5:
+            raise StatusError(ERROR_422, ADD_QUESTION_DIFFICULTY_ERR, 422)
 
         this_question = Question(
             question=form_data.question.strip(),
@@ -195,7 +215,7 @@ class PostQuestion:
         # Check new question id is greater than latest question id
         # before insert.
         if last_question.id >= new_question.id:
-            abort(500)
+            raise StatusError(ERROR_500, None, 500)
         # Structures data and builds response JSON.
         self.data.created = new_question.id
         self.response = jsonify(self.data.__dict__), 200
@@ -213,26 +233,24 @@ class Quiz:
         # Verifies fields
         if (not hasattr(form_data, 'quiz_category') or
                 not hasattr(form_data, 'previous_questions')):
-            abort(422, QUIZ_CATEGORY_ERR)
-        # Verifies that category id is an integer.
-        if type(form_data.quiz_category) != int:
-            return abort(422, QUIZ_CATEGORY_ERR)
-        # Verifies that category id is not negative.
+            raise StatusError(ERROR_422, QUIZ_CATEGORY_ERR, 422)
+        # Verifies that category id is an integer and not a negative value.
+        form_data.quiz_category = string_to_int(form_data.quiz_category,
+                                                QUIZ_CATEGORY_ERR)
         if form_data.quiz_category < 0:
-            abort(422, QUIZ_CATEGORY_ERR)
+            raise StatusError(ERROR_422, QUIZ_CATEGORY_ERR, 422)
         # Verifies that previous questions are passed as a list
         # and are only integers.
         if type(form_data.previous_questions) == list:
             for question in form_data.previous_questions:
-                if type(question) != int:
-                    abort(422, PREVIOUS_LIST_ERR)
+                question = string_to_int(question, PREVIOUS_LIST_ERR)
         else:
-            abort(422, PREVIOUS_LIST_ERR)
+            raise StatusError(ERROR_422, PREVIOUS_LIST_ERR, 422)
 
         all_questions = self.get_quizz_questions(form_data.quiz_category)
         # Verifies that there are quiz questions.
         if len(all_questions) < 1:
-            abort(404, CATEGORY_NOT_FOUND)
+            raise StatusError(ERROR_404, CATEGORY_NOT_FOUND, 404)
         # Selects list of questions that are not in previous questions.
         available_questions = [question for question in all_questions if
                                question.id not in form_data.previous_questions]
@@ -250,7 +268,7 @@ class Quiz:
         # Gets questions by category, or gets all questions
         # if category id is set to 0.
         if category_id != 0:
-            return Questions().get_questions_by_category(category_id)
+            return Questions().get_questions_by_category(str(category_id))
         else:
             return Questions().get_all_questions()
 
@@ -267,13 +285,9 @@ class QuestionsPage:
         # Checks if page can be converted to a positive integer, and
         # paginates response. Otherwise, returns a 422 error.
         else:
-            page = int(str(page)) if str(page).isdigit() else page
-
-            if type(page) == int:
-                if page < 1:
-                    abort(422, PAGE_INT_ERR)
-            else:
-                abort(422, PAGE_INT_ERR)
+            page = string_to_int(page, PAGE_INT_ERR)
+            if page < 1:
+                raise StatusError(ERROR_422, PAGE_INT_ERR, 422)
             # Page length can be configured in config.py
             start = (page - 1) * QUESTIONS_PER_PAGE
             stop = start + QUESTIONS_PER_PAGE
